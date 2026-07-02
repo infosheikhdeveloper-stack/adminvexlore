@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEXLORE Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="team.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Global & Reset Core to prevent Overflow */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0; padding: 0;
+        }
+        html, body {
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+            background: #07090e;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        /* Filter Tabs Styles */
+        .filter-tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            scrollbar-width: none;
+        }
+        .filter-tabs-container::-webkit-scrollbar {
+            display: none;
+        }
+        .tab-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 10px 18px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #aaa;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+        .tab-btn:hover {
+            color: #fff;
+            border-color: rgba(0, 243, 255, 0.4);
+        }
+        .tab-btn.active {
+            background: rgba(0, 243, 255, 0.1);
+            border-color: var(--cyan, #00f3ff);
+            color: var(--cyan, #00f3ff);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+        }
+
+        /* Responsive Admin Row Layout Engine */
+        .admin-row-card {
+            background: rgba(18, 22, 32, 0.6);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .admin-row-card {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                padding: 20px;
+            }
+        }
+
+        .team-meta-block {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 0;
+            flex: 1.5;
+        }
+        .admin-team-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--cyan, #00f3ff);
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .team-info-text {
+            min-width: 0;
+            width: 100%;
+        }
+        .team-info-text h4 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.15rem;
+            color: #fff;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .team-info-text p {
+            font-size: 0.85rem;
+            color: #aaa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .utr-text {
+            color: #ffaa00 !important;
+            font-family: 'Orbitron', sans-serif;
+            margin-top: 2px;
+        }
+
+        .players-info-block {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        @media (min-width: 768px) {
+            .players-info-block {
+                justify-content: center;
+            }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            flex: 1;
+        }
+        @media (min-width: 768px) {
+            .action-buttons {
+                width: auto;
+                justify-content: flex-end;
+            }
+        }
+        .action-buttons button, .btn-view-players {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            font-weight: bold;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            flex: 1;
+            white-space: nowrap;
+            transition: transform 0.2s;
+        }
+        @media (min-width: 768px) {
+            .action-buttons button, .btn-view-players {
+                flex: none;
+            }
+        }
+        .action-buttons button:active { transform: scale(0.95); }
+        
+        .btn-view-players {
+            background: rgba(0, 243, 255, 0.08);
+            border: 1px solid #00f3ff;
+            color: #00f3ff;
+            width: 100%;
+        }
+        @media (min-width: 768px) { .btn-view-players { width: auto; } }
+        
+        .btn-accept { background: #00ff66; color: #000; }
+        .btn-reject { background: #ff0055; color: #fff; }
+        .btn-cancel { background: #555; color: #fff; }
+
+        /* Modal Layout */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(7, 9, 14, 0.95);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #121620;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            padding: 20px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .close-modal {
+            position: absolute;
+            top: 15px; right: 15px;
+            font-size: 1.5rem;
+            color: #aaa;
+            cursor: pointer;
+        }
+        .modal-header {
+            font-family: 'Orbitron', sans-serif;
+            color: #00f3ff;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        .modal-player-card {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.03);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .modal-player-card h4 {
+            font-family: 'Orbitron', sans-serif;
+            color: #ffaa00;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
+        .modal-player-card p { font-size: 0.85rem; color: #ccc; margin-top: 2px; }
+        .captain-badge {
+            background: #ff5500;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 1px 5px;
+            border-radius: 3px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glow-bg glow1"></div>
+    <div class="glow-bg glow2"></div>
+
+    <header class="admin-header">
+        <div class="logo-box">
+            <h2>VEXLORE <span>ADMIN PANEL</span></h2>
+        </div>
+        <div class="stats-badge">
+            Requests Listed: <span id="pendingCount">0</span>
+        </div>
+    </header>
+
+    <main class="admin-container" style="max-width: 1000px; margin: 25px auto; padding: 0 15px;">
+        <div class="filter-tabs-container">
+            <button class="tab-btn active" onclick="switchTab('waiting', this)">WAITING</button>
+            <button class="tab-btn" onclick="switchTab('active', this)">ACCEPTED</button>
+            <button class="tab-btn" onclick="switchTab('rejected', this)">REJECTED</button>
+            <button class="tab-btn" onclick="switchTab('cancelled', this)">CANCELLED</button>
+        </div>
+
+        <div class="panel-card" style="background: #121620; border-radius: 16px; padding: 15px; border: 1px solid rgba(255,255,255,0.05);">
+            <div id="adminTeamsList" class="admin-teams-list">
+                <div class="loading-state" style="text-align: center; padding: 30px; color:#aaa;">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Loading Squad Records...
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal" id="playersModal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeModalBtn">&times;</span>
+            <div class="modal-header">
+                <i class="fa-solid fa-users"></i> SQUAD DETAILS
+            </div>
+            <div id="modalPlayersBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://hncukzavozfdzqrqmjuv.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuY3VremF2b3pmZHpxcnFtanV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0ODE5ODgsImV4cCI6MjA5ODA1Nzk4OH0.eBzwVznT0uDw_vT-PEyd2B-jskjBKMbrVgbwGs93FQU";
+        
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let currentLoadedRequests = [];
+        let currentStatusFilter = 'waiting';
+
+        async function loadRequestsByStatus(status) {
+            const listContainer = document.getElementById("adminTeamsList");
+            const countBadge = document.getElementById("pendingCount");
+            listContainer.innerHTML = `<div style="text-align:center; padding:30px; color:#aaa;"><i class="fa-solid fa-spinner fa-spin"></i> Fetching records...</div>`;
+
+            try {
+                const { data: requests, error } = await db
+                    .from("tournament_registrations")
+                    .select("*")
+                    .eq("status", status)
+                    .order("created_at", { ascending: true });
+
+                if (error) throw error;
+
+                currentLoadedRequests = requests;
+                countBadge.innerText = requests.length;
+
+                if (!requests || requests.length === 0) {
+                    listContainer.innerHTML = `
+                        <div style="text-align:center; padding:40px; color:#666; font-weight:600;">
+                            <i class="fa-solid fa-folder-open" style="font-size:2.5rem; margin-bottom:10px; display:block; color:#444;"></i>
+                            No teams found with "${status.toUpperCase()}" status.
+                        </div>`;
+                    return;
+                }
+
+                listContainer.innerHTML = "";
+
+                requests.forEach((req, index) => {
+                    const row = document.createElement("div");
+                    row.className = "admin-row-card";
+                    
+                    const logo = req.logo_url ? req.logo_url : "logo2.png";
+
+                    // Generate contextual actionable buttons based on current active filter
+                    let actionButtonsHtml = "";
+                    if (status === 'waiting') {
+                        actionButtonsHtml = `
+                            <button class="btn-accept" onclick="updateStatus('${req.id}', 'active')"><i class="fa-solid fa-check"></i> Accept</button>
+                            <button class="btn-reject" onclick="updateStatus('${req.id}', 'rejected')"><i class="fa-solid fa-xmark"></i> Reject</button>
+                        `;
+                    } else if (status === 'active') {
+                        actionButtonsHtml = `
+                            <button class="btn-cancel" onclick="updateStatus('${req.id}', 'cancelled')"><i class="fa-solid fa-ban"></i> Cancel</button>
+                            <button class="btn-reject" onclick="updateStatus('${req.id}', 'rejected')"><i class="fa-solid fa-trash"></i> Reject</button>
+                        `;
+                    } else {
+                        // For Rejected or Cancelled data tracks - show restore option to move back to waiting
+                        actionButtonsHtml = `
+                            <button class="btn-accept" style="background:#ffaa00; color:#000;" onclick="updateStatus('${req.id}', 'waiting')"><i class="fa-solid fa-rotate-left"></i> Re-Evaluate</button>
+                        `;
+                    }
+
+                    row.innerHTML = `
+                        <div class="team-meta-block">
+                            <img src="${logo}" class="admin-team-logo" onerror="this.src='logo2.png'">
+                            <div class="team-info-text">
+                                <h4>${req.team_name}</h4>
+                                <p><strong>Captain:</strong> ${req.leader_name || 'N/A'}</p>
+                                <p class="utr-text"><strong>UTR:</strong> ${req.utr}</p>
+                            </div>
+                        </div>
+                        <div class="players-info-block">
+                            <button class="btn-view-players" onclick="openPlayersModal(${index})">
+                                <i class="fa-solid fa-eye"></i> Squad (${getPlayersCount(req.players)})
+                            </button>
+                        </div>
+                        <div class="action-buttons">
+                            ${actionButtonsHtml}
+                        </div>
+                    `;
+                    listContainer.appendChild(row);
+                });
+
+            } catch (err) {
+                listContainer.innerHTML = `<div style="color:#ff0055; padding:20px; text-align:center;">Error: ${err.message}</div>`;
+            }
+        }
+
+        function getPlayersCount(playersData) {
+            try {
+                if (typeof playersData === 'string') return JSON.parse(playersData).length;
+                if (Array.isArray(playersData)) return playersData.length;
+            } catch(e) {}
+            return 0;
+        }
+
+        function switchTab(status, element) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            currentStatusFilter = status;
+            loadRequestsByStatus(status);
+        }
+
+        function openPlayersModal(index) {
+            const req = currentLoadedRequests[index];
+            const modalBody = document.getElementById("modalPlayersBody");
+            modalBody.innerHTML = "";
+
+            let playersArr = [];
+            if (typeof req.players === 'string') {
+                try { playersArr = JSON.parse(req.players); } catch(e) {}
+            } else if (Array.isArray(req.players)) {
+                playersArr = req.players;
+            }
+
+            playersArr.forEach((p, idx) => {
+                const isLeader = p.leader === true || p.leader === "true";
+                const card = document.createElement("div");
+                card.className = "modal-player-card";
+                card.innerHTML = `
+                    <h4>Player ${idx + 1}: ${p.name} ${isLeader ? '<span class="captain-badge">Captain</span>' : ''}</h4>
+                    <p><strong>IGN:</strong> ${p.username || 'N/A'} | <strong>UID:</strong> ${p.uid || 'N/A'}</p>
+                    <p><strong>Level:</strong> ${p.level || '--'}</p>
+                `;
+                modalBody.appendChild(card);
+            });
+
+            document.getElementById("playersModal").classList.add("active");
+        }
+
+        // Modal Close UI Operations
+        document.getElementById("closeModalBtn").addEventListener("click", () => {
+            document.getElementById("playersModal").classList.remove("active");
+        });
+        window.addEventListener("click", (e) => {
+            const modal = document.getElementById("playersModal");
+            if(e.target === modal) modal.classList.remove("active");
+        });
+
+        async function updateStatus(id, newStatus) {
+            if(!confirm(`Are you sure you want to shift status to ${newStatus}?`)) return;
+
+            try {
+                const { error } = await db
+                    .from("tournament_registrations")
+                    .update({ status: newStatus })
+                    .eq("id", id);
+
+                if (error) throw error;
+
+                alert(`Status changed to ${newStatus}!`);
+                loadRequestsByStatus(currentStatusFilter); 
+            } catch (err) {
+                alert("Operation failed: " + err.message);
+            }
+        }
+
+        // Base Initial Setup
+        loadRequestsByStatus('waiting');
+    </script>
+</body>
+</html>

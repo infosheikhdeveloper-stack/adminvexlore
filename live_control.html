@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEXLORE | CONTROL PANEL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="live_control.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="control-container">
+        <h1 class="panel-title"><i class="fa-solid fa-gears"></i> LIVE ADMIN CONTROL PANEL</h1>
+
+        <div class="control-section-box">
+            <h3>1. METADATA SETTINGS</h3>
+            <div class="form-row">
+                <input type="text" id="mTitle" placeholder="Tournament Title" value="VEXLORE ELITE SEASON 1">
+                <input type="text" id="mDate" placeholder="Date (e.g. 02 July 2026)">
+                <input type="text" id="mTime" placeholder="Time (e.g. 06:00 PM)">
+            </div>
+        </div>
+
+        <div class="control-section-box">
+            <h3>2. MATCH SQUAD SETUP</h3>
+            <div class="form-row">
+                <div>
+                    <label>SELECT TEAM A</label>
+                    <select id="selectTeamA" onchange="syncTeamSelection('A')"><option value="">Loading registration rows...</option></select>
+                </div>
+                <div style="text-align: center; font-weight: bold; font-size: 1.5rem; color: #ffaa00; align-self: end; padding-bottom: 10px;">VS</div>
+                <div>
+                    <label>SELECT TEAM B</label>
+                    <select id="selectTeamB" onchange="syncTeamSelection('B')"><option value="">Loading registration rows...</option></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-section-box">
+            <h3>3. SCOREBOARD & ROUND CONTROLS</h3>
+            <div class="grid-3-col">
+                <div class="counter-card-panel">
+                    <h4>TEAM A VICTORIES</h4>
+                    <div class="flex-center-gap">
+                        <button class="btn-math" onclick="adjustVictory('A', -1)">-</button>
+                        <span class="count-display" id="vCountA">0</span>
+                        <button class="btn-math" onclick="adjustVictory('A', 1)">+</button>
+                    </div>
+                </div>
+
+                <div class="counter-card-panel">
+                    <h4>MATCH SPECS</h4>
+                    <select id="selectRound">
+                        <option value="ROUND 1">ROUND 1</option>
+                        <option value="ROUND 2">ROUND 2</option>
+                        <option value="ROUND 3">ROUND 3</option>
+                        <option value="ROUND 4">ROUND 4</option>
+                        <option value="ROUND 5">ROUND 5</option>
+                        <option value="FINAL ROUND">FINAL ROUND</option>
+                    </select>
+                    <select id="selectStatus" style="margin-top: 10px;">
+                        <option value="LIVE">LIVE MATCH</option>
+                        <option value="TEAM A WINNER">TEAM A WINNER</option>
+                        <option value="TEAM B WINNER">TEAM B WINNER</option>
+                        <option value="MATCH PAUSED">MATCH PAUSED</option>
+                    </select>
+                </div>
+
+                <div class="counter-card-panel">
+                    <h4>TEAM B VICTORIES</h4>
+                    <div class="flex-center-gap">
+                        <button class="btn-math" onclick="adjustVictory('B', -1)">-</button>
+                        <span class="count-display" id="vCountB">0</span>
+                        <button class="btn-math" onclick="adjustVictory('B', 1)">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-section-box">
+            <h3>4. LIVE KILL EDITING DESK</h3>
+            <div class="killboard-split">
+                <div>
+                    <h4 id="headTeamA" style="color:#00f3ff">TEAM A SQUAD</h4>
+                    <div id="killEditorA" class="kill-editor-group">Select a team above to edit kills</div>
+                </div>
+                <div>
+                    <h4 id="headTeamB" style="color:#ff5500">TEAM B SQUAD</h4>
+                    <div id="killEditorB" class="kill-editor-group">Select a team above to edit kills</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-section-box">
+            <h3>5. BADGE INTERACTIVE STATUS CAROUSEL</h3>
+            <div class="form-row">
+                <div>
+                    <label>TEAM A CURRENT BADGE</label>
+                    <select id="badgeSelectA">
+                        <option value="BRONZE">BRONZE</option>
+                        <option value="SILVER">SILVER</option>
+                        <option value="PLATINUM">PLATINUM</option>
+                        <option value="GOLD">GOLDEN</option>
+                    </select>
+                </div>
+                <div>
+                    <label>TEAM B CURRENT BADGE</label>
+                    <select id="badgeSelectB">
+                        <option value="BRONZE">BRONZE</option>
+                        <option value="SILVER">SILVER</option>
+                        <option value="PLATINUM">PLATINUM</option>
+                        <option value="GOLD">GOLDEN</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="master-btn" onclick="publishLiveState()"><i class="fa-solid fa-tower-broadcast"></i> UPDATE LIVE DASHBOARD</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://hncukzavozfdzqrqmjuv.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuY3VremF2b3pmZHpxcnFtanV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0ODE5ODgsImV4cCI6MjA5ODA1Nzk4OH0.eBzwVznT0uDw_vT-PEyd2B-jskjBKMbrVgbwGs93FQU";
+        
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let registeredTeamsList = [];
+        let activeLiveRecordId = null;
+
+        let currentWinsA = 0;
+        let currentWinsB = 0;
+        let activeKillsA = [];
+        let activeKillsB = [];
+
+        // Fetch everything from registrations rows database
+        async function fetchRegistrations() {
+            try {
+                const { data, error } = await db.from("tournament_registrations").select("*");
+                if (data) {
+                    registeredTeamsList = data;
+                    populateDropdowns();
+                }
+                fetchActiveLiveState();
+            } catch(e) { console.error(e); }
+        }
+
+        function populateDropdowns() {
+            const dropA = document.getElementById("selectTeamA");
+            const dropB = document.getElementById("selectTeamB");
+            
+            let optionsHtml = '<option value="">-- Choose Squad --</option>';
+            registeredTeamsList.forEach(t => {
+                optionsHtml += `<option value="${t.id}">${t.team_name}</option>`;
+            });
+
+            dropA.innerHTML = optionsHtml;
+            dropB.innerHTML = optionsHtml;
+        }
+
+        function syncTeamSelection(side) {
+            const id = document.getElementById(`selectTeam${side}`).value;
+            const chosen = registeredTeamsList.find(x => x.id == id);
+            
+            document.getElementById(`headTeam${side}`).innerText = chosen ? chosen.team_name : `TEAM ${side}`;
+            
+            let parsedPlayers = [];
+            if(chosen && chosen.players) {
+                parsedPlayers = typeof chosen.players === 'string' ? JSON.parse(chosen.players) : chosen.players;
+            }
+
+            let killArray = parsedPlayers.map(p => ({ name: p.name || 'Unknown', kills: 0 }));
+            if(side === 'A') { activeKillsA = killArray; renderKillEditors('A'); }
+            else { activeKillsB = killArray; renderKillEditors('B'); }
+        }
+
+        function renderKillEditors(side) {
+            const container = document.getElementById(`killEditor${side}`);
+            const arr = side === 'A' ? activeKillsA : activeKillsB;
+            
+            let html = "";
+            arr.forEach((p, index) => {
+                html += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:8px 12px; margin-bottom:5px; border-radius:6px;">
+                        <span>${p.name}</span>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button type="button" style="width:25px;height:25px;background:#ff5500;border:none;color:#fff;" onclick="adjustKill('${side}', ${index}, -1)">-</button>
+                            <span style="font-weight:bold; min-width:20px; text-align:center;">${p.kills}</span>
+                            <button type="button" style="width:25px;height:25px;background:#00f3ff;border:none;color:#000;" onclick="adjustKill('${side}', ${index}, 1)">+</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html || 'No players loaded.';
+        }
+
+        function adjustKill(side, idx, delta) {
+            const arr = side === 'A' ? activeKillsA : activeKillsB;
+            if(arr[idx]) {
+                arr[idx].kills = Math.max(0, arr[idx].kills + delta);
+                renderKillEditors(side);
+            }
+        }
+
+        function adjustVictory(side, val) {
+            if(side === 'A') {
+                currentWinsA = Math.max(0, currentWinsA + val);
+                document.getElementById("vCountA").innerText = currentWinsA;
+            } else {
+                currentWinsB = Math.max(0, currentWinsB + val);
+                document.getElementById("vCountB").innerText = currentWinsB;
+            }
+        }
+
+        async function fetchActiveLiveState() {
+            const { data } = await db.from("live_matches").select("*").order("id", { ascending: false }).limit(1).maybeSingle();
+            if(data) {
+                activeLiveRecordId = data.id;
+                document.getElementById("mTitle").value = data.tournament_title;
+                document.getElementById("mDate").value = data.match_date || "";
+                document.getElementById("mTime").value = data.match_time || "";
+                
+                currentWinsA = data.team_a_victories || 0;
+                currentWinsB = data.team_b_victories || 0;
+                document.getElementById("vCountA").innerText = currentWinsA;
+                document.getElementById("vCountB").innerText = currentWinsB;
+                
+                document.getElementById("selectRound").value = data.current_round || "ROUND 1";
+                document.getElementById("selectStatus").value = data.match_status || "LIVE";
+                document.getElementById("badgeSelectA").value = data.team_a_badge_status || "BRONZE";
+                document.getElementById("badgeSelectB").value = data.team_b_badge_status || "BRONZE";
+            }
+        }
+
+        async function publishLiveState() {
+            const teamASelect = document.getElementById("selectTeamA");
+            const teamBSelect = document.getElementById("selectTeamB");
+
+            const objA = registeredTeamsList.find(x => x.id == teamASelect.value);
+            const objB = registeredTeamsList.find(x => x.id == teamBSelect.value);
+
+            const payload = {
+                tournament_title: document.getElementById("mTitle").value,
+                match_date: document.getElementById("mDate").value,
+                match_time: document.getElementById("mTime").value,
+                team_a_name: objA ? objA.team_name : document.getElementById("headTeamA").innerText,
+                team_a_logo: objA ? objA.logo_url : "logo2.png",
+                team_b_name: objB ? objB.team_name : document.getElementById("headTeamB").innerText,
+                team_b_logo: objB ? objB.logo_url : "logo2.png",
+                team_a_victories: currentWinsA,
+                team_b_victories: currentWinsB,
+                current_round: document.getElementById("selectRound").value,
+                match_status: document.getElementById("selectStatus").value,
+                team_a_badge_status: document.getElementById("badgeSelectA").value,
+                team_b_badge_status: document.getElementById("badgeSelectB").value,
+                team_a_kills: activeKillsA,
+                team_b_kills: activeKillsB
+            };
+
+            let res;
+            if(activeLiveRecordId) {
+                res = await db.from("live_matches").update(payload).eq("id", activeLiveRecordId);
+            } else {
+                res = await db.from("live_matches").insert([payload]);
+            }
+
+            if(res.error) alert("Syncing process interrupted.");
+            else alert("Live Arena state dispatched to database successfully!");
+        }
+
+        fetchRegistrations();
+    </script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEXLORE | LIVE ARENA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="live.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="glow1"></div>
+    <div class="glow2"></div>
+
+    <header class="topbar">
+        <div class="brand">
+            <img src="logo2.png" alt="Vexlore Logo">
+            <h2>VEXLORE</h2>
+        </div>
+        <div class="live-badge">🔴 LIVE</div>
+    </header>
+
+    <div class="container">
+        <div class="tournament-header-card">
+            <h1 id="tourTitle">LOADING TOURNAMENT...</h1>
+            <div class="schedule-meta">
+                <span><i class="fa-solid fa-calendar-days"></i> <span id="tourDate">--</span></span>
+                <span><i class="fa-solid fa-clock"></i> <span id="tourTime">--</span></span>
+            </div>
+        </div>
+
+        <div class="match-card-vs">
+            <div class="team-vs-block left-squad">
+                <div class="logo-shield">
+                    <img id="teamALogo" src="logo2.png" onerror="this.src='logo2.png'">
+                </div>
+                <h3 id="teamAName">TEAM A</h3>
+            </div>
+
+            <div class="vs-divider">
+                <div class="vs-text">VS</div>
+                <div class="round-indicator" id="matchRound">ROUND 1</div>
+            </div>
+
+            <div class="team-vs-block right-squad">
+                <div class="logo-shield">
+                    <img id="teamBLogo" src="logo2.png" onerror="this.src='logo2.png'">
+                </div>
+                <h3 id="teamBName">TEAM B</h3>
+            </div>
+        </div>
+
+        <div class="score-showcase-box">
+            <div class="score-title">MATCH VICTORIES</div>
+            <div class="score-counter-row">
+                <div class="victory-num neon-cyan-txt" id="teamAVictories">0</div>
+                <div class="victory-sep">:</div>
+                <div class="victory-num neon-orange-txt" id="teamBVictories">0</div>
+            </div>
+            <div class="match-status-ticker" id="matchStatus">MATCH IN PROGRESS</div>
+        </div>
+
+        <div class="live-killboard-box">
+            <div class="killboard-head"><i class="fa-solid fa-skull-crossbones"></i> SQUAD ROSTER & LIVE KILLS</div>
+            <div class="killboard-split">
+                <div class="squad-kills-list" id="teamAPlayersList"></div>
+                <div class="squad-kills-list" id="teamBPlayersList"></div>
+            </div>
+        </div>
+
+        <div class="badge-status-section">
+            <h2>BADGE STANDINGS</h2>
+            <div class="badge-grid">
+                <div class="badge-display-card" id="teamABadgeCard">
+                    <img id="teamABadgeImg" src="bronze.png" alt="Badge">
+                    <div class="badge-info">
+                        <span id="badgeTeamAName">TEAM A</span>
+                        <h4 id="badgeTeamAText">BRONZE</h4>
+                    </div>
+                </div>
+
+                <div class="badge-display-card" id="teamBBadgeCard">
+                    <img id="teamBBadgeImg" src="bronze.png" alt="Badge">
+                    <div class="badge-info">
+                        <span id="badgeTeamBName">TEAM B</span>
+                        <h4 id="badgeTeamBText">BRONZE</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://hncukzavozfdzqrqmjuv.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuY3VremF2b3pmZHpxcnFtanV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0ODE5ODgsImV4cCI6MjA5ODA1Nzk4OH0.eBzwVznT0uDw_vT-PEyd2B-jskjBKMbrVgbwGs93FQU";
+        
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let activeMatchId = null;
+
+        // Render values onto nodes
+        function updateUI(match) {
+            if(!match) return;
+            activeMatchId = match.id;
+
+            document.getElementById("tourTitle").innerText = match.tournament_title || "VEXLORE ARENA MATCH";
+            document.getElementById("tourDate").innerText = match.match_date || "--";
+            document.getElementById("tourTime").innerText = match.match_time || "--";
+
+            document.getElementById("teamAName").innerText = match.team_name_a || match.team_a_name || "TEAM A";
+            document.getElementById("teamBName").innerText = match.team_name_b || match.team_b_name || "TEAM B";
+            document.getElementById("teamALogo").src = match.team_a_url || match.team_a_logo || "logo2.png";
+            document.getElementById("teamBLogo").src = match.team_b_url || match.team_b_logo || "logo2.png";
+
+            document.getElementById("teamAVictories").innerText = match.team_a_victories;
+            document.getElementById("teamBVictories").innerText = match.team_b_victories;
+            document.getElementById("matchRound").innerText = match.current_round || "ROUND 1";
+            document.getElementById("matchStatus").innerText = match.match_status || "LIVE";
+
+            // Map Badges
+            const badgeImages = {
+                'BRONZE': 'bronze.png',
+                'SILVER': 'silver.png',
+                'PLATINUM': 'Platinum.png',
+                'GOLD': 'golden.png'
+            };
+
+            const tABadge = (match.team_a_badge_status || 'BRONZE').toUpperCase();
+            const tBBadge = (match.team_b_badge_status || 'BRONZE').toUpperCase();
+
+            document.getElementById("badgeTeamAName").innerText = match.team_a_name || "TEAM A";
+            document.getElementById("badgeTeamBName").innerText = match.team_b_name || "TEAM B";
+            
+            document.getElementById("badgeTeamAText").innerText = tABadge;
+            document.getElementById("badgeTeamBText").innerText = tBBadge;
+            
+            document.getElementById("teamABadgeImg").src = badgeImages[tABadge] || 'bronze.png';
+            document.getElementById("teamBBadgeImg").src = badgeImages[tBBadge] || 'bronze.png';
+
+            // Extract Arrays
+            let playersA = Array.isArray(match.team_a_kills) ? match.team_a_kills : JSON.parse(match.team_a_kills || '[]');
+            let playersB = Array.isArray(match.team_b_kills) ? match.team_b_kills : JSON.parse(match.team_b_kills || '[]');
+
+            // Render Player Roster A
+            let htmlA = "";
+            playersA.forEach(p => {
+                htmlA += `<div class="kill-row"><span>${p.name}</span><span class="kill-count">${p.kills || 0} Kills</span></div>`;
+            });
+            document.getElementById("teamAPlayersList").innerHTML = htmlA || '<p style="padding:10px;color:#666;">No players loaded</p>';
+
+            // Render Player Roster B
+            let htmlB = "";
+            playersB.forEach(p => {
+                htmlB += `<div class="kill-row"><span>${p.name}</span><span class="kill-count">${p.kills || 0} Kills</span></div>`;
+            });
+            document.getElementById("teamBPlayersList").innerHTML = htmlB || '<p style="padding:10px;color:#666;">No players loaded</p>';
+        }
+
+        async function fetchLatestMatch() {
+            try {
+                const { data, error } = await db
+                    .from("live_matches")
+                    .select("*")
+                    .order("id", { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                
+                if (data) updateUI(data);
+            } catch(e) { console.error(e); }
+        }
+
+        // Initialize Real-time Stream Listeners
+        fetchLatestMatch();
+        
+        db.channel('live_matches_realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'live_matches' }, payload => {
+              if(payload.new) updateUI(payload.new);
+          })
+          .subscribe();
+    </script>
+</body>
+</html>

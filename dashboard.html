@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEXLORE Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Premium Glowing Cyberpunk Styling */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0; padding: 0;
+        }
+        
+        :root {
+            --bg-dark: #07090e;
+            --card-glass: rgba(18, 22, 32, 0.65);
+            --neon-cyan: #00f3ff;
+            --neon-orange: #ffaa00;
+            --neon-green: #00ff66;
+            --border-glow: rgba(0, 243, 255, 0.15);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Background Neon Glows */
+        .glow-bg {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.15;
+            z-index: -1;
+            pointer-events: none;
+        }
+        .glow1 { top: -10%; left: -10%; background: var(--neon-cyan); }
+        .glow2 { bottom: -10%; right: -10%; background: var(--neon-orange); }
+
+        /* Premium Header Styling */
+        .admin-header {
+            background: rgba(7, 9, 14, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-box img {
+            width: 45px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+
+        .logo-box h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: #fff;
+        }
+
+        .logo-box h2 span {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        /* Container & Grid Setup */
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .dashboard-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            border-left: 4px solid var(--neon-cyan);
+            padding-left: 15px;
+        }
+
+        /* 3D Premium Metrics Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--card-glass);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px) rotateX(2deg) rotateY(2deg);
+            box-shadow: 0 15px 30px rgba(0, 243, 255, 0.1), inset 0 0 15px rgba(255, 255, 255, 0.02);
+            border-color: rgba(0, 243, 255, 0.3);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, var(--neon-cyan), transparent);
+        }
+
+        .stat-card-teams::before { background: linear-gradient(90deg, var(--neon-cyan), transparent); }
+        .stat-card-players::before { background: linear-gradient(90deg, var(--neon-orange), transparent); }
+
+        .stat-icon {
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            opacity: 0.85;
+        }
+        .stat-card-teams .stat-icon { color: var(--neon-cyan); text-shadow: 0 0 10px rgba(0, 243, 255, 0.4); }
+        .stat-card-players .stat-icon { color: var(--neon-orange); text-shadow: 0 0 10px rgba(255, 170, 0, 0.4); }
+
+        .stat-info h3 {
+            font-size: 0.95rem;
+            color: #8a99ad;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 5px;
+        }
+
+        .stat-counter {
+            font-size: 2.5rem;
+            font-weight: 800;
+            font-family: 'Orbitron', sans-serif;
+            color: #fff;
+        }
+
+        /* Control Panel Grid Configuration */
+        .controls-section {
+            background: var(--card-glass);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .controls-section h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+            color: var(--neon-cyan);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        /* Premium Navigation Buttons Styling */
+        .control-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow: hidden;
+            box-shadow: inset 0 0 0 rgba(0, 243, 255, 0);
+        }
+
+        .control-btn i {
+            font-size: 1.8rem;
+            transition: transform 0.3s ease;
+        }
+
+        /* Context Specific Hover Actions */
+        .btn-teams:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.15), inset 0 0 10px rgba(0, 243, 255, 0.05);
+        }
+        .btn-live:hover {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.15), inset 0 0 10px rgba(0, 255, 102, 0.05);
+        }
+        .btn-control:hover {
+            border-color: var(--neon-orange);
+            color: var(--neon-orange);
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.15), inset 0 0 10px rgba(255, 170, 0, 0.05);
+        }
+
+        .control-btn:hover i {
+            transform: translateY(-4px) scale(1.05);
+        }
+
+        .control-btn span {
+            font-size: 0.8rem;
+            font-family: 'Rajdhani', sans-serif;
+            color: #64748b;
+            font-weight: 500;
+            margin-top: 2px;
+        }
+        .control-btn:hover span { color: #fff; opacity: 0.8; }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 768px) {
+            .admin-header { padding: 15px; }
+            .dashboard-container { margin: 20px auto; }
+            .controls-section { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glow-bg glow1"></div>
+    <div class="glow-bg glow2"></div>
+
+    <header class="admin-header">
+        <div class="logo-box">
+            <img src="logo2.png" alt="Vexlore Logo" onerror="this.src='logo2.png'">
+            <h2>VEXLORE <span>PANEL</span></h2>
+        </div>
+        <div style="font-family: 'Orbitron'; font-size: 0.85rem; color: var(--neon-cyan); font-weight: 600;">
+            <i class="fa-solid fa-circle" style="font-size: 0.6rem; color: var(--neon-green); margin-right: 5px; animation: blink 1.5s infinite;"></i> LIVE SYSTEM SECURE
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <h2 class="dashboard-title">Overview <span>Dashboard</span></h2>
+
+        <div class="stats-grid">
+            <div class="stat-card stat-card-teams">
+                <div class="stat-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="stat-info">
+                    <h3>Total Squads Active</h3>
+                    <div class="stat-counter" id="totalTeamsCount">--</div>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-card-players">
+                <div class="stat-icon"><i class="fa-solid fa-users-viewfinder"></i></div>
+                <div class="stat-info">
+                    <h3>Total Players Listed</h3>
+                    <div class="stat-counter" id="totalPlayersCount">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <h3><i class="fa-solid fa-folder-gear"></i> MANAGEMENT CONSOLE</h3>
+            <div class="controls-grid">
+                
+                <a href="admin.html" class="control-btn btn-teams">
+                    <i class="fa-solid fa-id-card-clip"></i>
+                    REGISTRATION APPROVALS
+                    <span>Manage registrations & slots</span>
+                </a>
+
+                <a href="live.html" class="control-btn btn-live">
+                    <i class="fa-solid fa-play"></i>
+                    LIVE FEED STREAM
+                    <span>View active match status</span>
+                </a>
+
+                <a href="live_control.html" class="control-btn btn-control">
+                    <i class="fa-solid fa-gamepad"></i>
+                    MATCH CONTROLLER
+                    <span>Room keys, points & matches</span>
+                </a>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const SUPABASE_URL = "https://hncukzavozfdzqrqmjuv.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuY3VremF2b3pmZHpxcnFtanV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0ODE5ODgsImV4cCI6MjA5ODA1Nzk4OH0.eBzwVznT0uDw_vT-PEyd2B-jskjBKMbrVgbwGs93FQU";
+        
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Core async pipeline to fetch analytics architecture metrics
+        async function fetchLiveMetrics() {
+            try {
+                // Fetch only teams that are approved ('active') to build statistics data 
+                const { data: teams, error } = await db
+                    .from("tournament_registrations")
+                    .select("players")
+                    .eq("status", "active");
+
+                if (error) throw error;
+
+                let squadCounter = 0;
+                let playerCounter = 0;
+
+                if (teams && teams.length > 0) {
+                    squadCounter = teams.length;
+                    
+                    teams.forEach(row => {
+                        let parsedPlayers = [];
+                        if (typeof row.players === 'string') {
+                            try { parsedPlayers = JSON.parse(row.players); } catch(e) {}
+                        } else if (Array.isArray(row.players)) {
+                            parsedPlayers = row.players;
+                        }
+                        playerCounter += parsedPlayers.length;
+                    });
+                }
+
+                // Render metrics elements smoothly
+                document.getElementById("totalTeamsCount").innerText = squadCounter;
+                document.getElementById("totalPlayersCount").innerText = playerCounter;
+
+            } catch (err) {
+                console.error("Metrics engine error:", err.message);
+                document.getElementById("totalTeamsCount").innerText = "ERR";
+                document.getElementById("totalPlayersCount").innerText = "ERR";
+            }
+        }
+
+        // Initialize core operations
+        fetchLiveMetrics();
+    </script>
+    
+    <style>
+        @keyframes blink {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+    </style>
+</body>
+</html>
